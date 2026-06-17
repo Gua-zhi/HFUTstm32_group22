@@ -1,0 +1,206 @@
+C51 COMPILER V9.60.7.0   LCD12864                                                          06/17/2026 17:50:44 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE LCD12864
+OBJECT MODULE PLACED IN lcd12864.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE lcd12864.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "reg51.h"
+   2          
+   3          /********IO引脚定义***********************************************************/
+   4          sbit LCD_RS = P1 ^ 0;
+   5          sbit LCD_RW = P1 ^ 1;
+   6          sbit LCD_E = P1 ^ 2;
+   7          sbit PSB = P1 ^ 6;    //PSB脚为12864-12系列的串、并通讯功能切换，使用8位并行接口，PSB=1
+   8          
+   9          /********宏定义***********************************************************/
+  10          #define LCD_Data P0
+  11          #define Busy    0x80 //用于检测LCD状态字中的Busy标识
+  12          
+  13          /********函数声明*************************************************************/
+  14          void WriteDataLCD(unsigned char WDLCD);
+  15          void WriteCommandLCD(unsigned char WCLCD, BuysC);
+  16          unsigned char ReadStatusLCD(void);
+  17          void LCDInit(void);
+  18          void LCDClear(void);
+  19          void LCDFlash(void);
+  20          void DisplayOneChar(unsigned char X, unsigned char Y, unsigned char DData);
+  21          void Delay5Ms(void);
+  22          void Delay400Ms(void);
+  23          void ScrollText(unsigned char* show_str);//滚动函数
+  24          
+  25          /*********结构体姓名学号***************************************************/
+  26          typedef struct
+  27          {
+  28              unsigned char name[16];
+  29              unsigned char id[16];
+  30          } STU;
+  31          code STU stu[5] = {
+  32                {"Grade",       "2025ji"},
+  33              {"Luguanzhi",   "210635"},
+  34              {"Laiweijun",   "210641"},
+  35              {"Wangqihua",   "210603"},
+  36              {"Qiyunzhe",    "210604"}
+  37          };
+  38          /***********主函数开始********************************************************/
+  39          void main(void)
+  40          {
+  41   1          unsigned char i;
+  42   1          unsigned char show_buf[32]; //拼接缓存：姓名+空格+学号
+  43   1          PSB = 1;
+  44   1          Delay400Ms();
+  45   1          LCDInit();
+  46   1      
+  47   1          while (1)
+  48   1          {
+  49   2              //循环遍历4名学生
+  50   2              for (i = 0; i < 5; i++)
+  51   2              {
+  52   3                  unsigned char p = 0, j;
+  53   3                  //1.复制姓名拼音
+  54   3                  for (j = 0; stu[i].name[j] != '\0'; j++)
+  55   3                      show_buf[p++] = stu[i].name[j];
+C51 COMPILER V9.60.7.0   LCD12864                                                          06/17/2026 17:50:44 PAGE 2   
+
+  56   3                  show_buf[p++] = ' '; //空格分隔姓名与学号
+  57   3                  //2.复制学号
+  58   3                  for (j = 0; stu[i].id[j] != '\0'; j++)
+  59   3                      show_buf[p++] = stu[i].id[j];
+  60   3                  show_buf[p] = '\0'; //字符串结束标记
+  61   3      
+  62   3                  ScrollText(show_buf);
+  63   3                  LCDClear();
+  64   3                  Delay400Ms();
+  65   3              }
+  66   2          }
+  67   1      }
+  68          
+  69          /***********写数据********************************************************/
+  70          void WriteDataLCD(unsigned char WDLCD)
+  71          {
+  72   1          ReadStatusLCD(); //检测忙 
+  73   1          LCD_RS = 1;
+  74   1          LCD_RW = 0;
+  75   1          LCD_Data = WDLCD;
+  76   1          LCD_E = 1;
+  77   1          Delay5Ms();
+  78   1          LCD_E = 0;
+  79   1      }
+  80          
+  81          /***********写指令********************************************************/
+  82          void WriteCommandLCD(unsigned char WCLCD, BuysC) //BuysC为0时忽略忙检测
+  83          {
+  84   1          if (BuysC) ReadStatusLCD(); //根据需要检测忙 
+  85   1          LCD_RS = 0;
+  86   1          LCD_RW = 0;
+  87   1          LCD_Data = WCLCD;
+  88   1          LCD_E = 1;
+  89   1          Delay5Ms();
+  90   1          LCD_E = 0;
+  91   1      }
+  92          
+  93          /***********读状态*******************************************************/
+  94          unsigned char ReadStatusLCD(void)
+  95          {
+  96   1          LCD_Data = 0xFF;
+  97   1          LCD_RS = 0;
+  98   1          LCD_RW = 1;
+  99   1          LCD_E = 1;
+ 100   1          Delay5Ms();
+ 101   1          while (LCD_Data & Busy); //检测忙信号 
+ 102   1          LCD_E = 0;
+ 103   1          return(1);
+ 104   1      }
+ 105          
+ 106          /***********初始化********************************************************/
+ 107          void LCDInit(void)
+ 108          {
+ 109   1          WriteCommandLCD(0x30, 1); //先基础模式上电
+ 110   1          Delay5Ms();
+ 111   1          WriteCommandLCD(0x0C, 1); //开显示，无光标
+ 112   1          Delay5Ms();
+ 113   1          WriteCommandLCD(0x01, 1); //清屏
+ 114   1          Delay5Ms();
+ 115   1          WriteCommandLCD(0x06, 1); //地址自增
+ 116   1          // 新增：切换到汉字指令集，支持GB2312汉字
+ 117   1          WriteCommandLCD(0x34, 1);
+C51 COMPILER V9.60.7.0   LCD12864                                                          06/17/2026 17:50:44 PAGE 3   
+
+ 118   1          Delay5Ms();
+ 119   1      }
+ 120          /***********清屏********************************************************/
+ 121          void LCDClear(void)
+ 122          {
+ 123   1          WriteCommandLCD(0x01, 1); //显示清屏
+ 124   1          WriteCommandLCD(0x34, 1); // 显示光标移动设置
+ 125   1          WriteCommandLCD(0x30, 1); // 显示开及光标设置
+ 126   1      }
+ 127          
+ 128          
+ 129          /***********按指定位置显示一个字符*******************************************/
+ 130          void DisplayOneChar(unsigned char X, unsigned char Y, unsigned char DData)
+ 131          {
+ 132   1          unsigned char addr;
+ 133   1          //只允许第1行输出
+ 134   1          if (Y != 1)
+ 135   1              return;
+ 136   1      
+ 137   1          X &= 0x0F;  //限制列0~15
+ 138   1          addr = 0x80 + X; //第一行固定基地址
+ 139   1      
+ 140   1          WriteCommandLCD(addr, 0);
+ 141   1          WriteDataLCD(DData);
+ 142   1      }
+ 143          
+ 144          /***********文字滚动函数*****************************************/
+ 145          void ScrollText(unsigned char* show_str)
+ 146          {
+ 147   1          unsigned char i, str_len;
+ 148   1          str_len = 0;
+ 149   1          while (show_str[str_len] != '\0') str_len++;
+ 150   1      
+ 151   1          LCDClear();
+ 152   1          for (i = 0; i < str_len && i < 16; i++)
+ 153   1          {
+ 154   2              DisplayOneChar(i, 1, show_str[i]);
+ 155   2          }
+ 156   1          Delay400Ms();
+ 157   1          Delay400Ms();
+ 158   1          Delay400Ms();
+ 159   1          Delay400Ms();
+ 160   1      }
+ 161          /***********短延时********************************************************/
+ 162          void Delay5Ms(void)
+ 163          {
+ 164   1          unsigned int TempCyc = 5552;
+ 165   1          while (TempCyc--);
+ 166   1      }
+ 167          
+ 168          /***********长延时********************************************************/
+ 169          void Delay400Ms(void)
+ 170          {
+ 171   1          unsigned char TempCycA = 5;
+ 172   1          unsigned int TempCycB;
+ 173   1          while (TempCycA--) {
+ 174   2              TempCycB = 7269;
+ 175   2              while (TempCycB--);
+ 176   2          }
+ 177   1      }
+
+
+C51 COMPILER V9.60.7.0   LCD12864                                                          06/17/2026 17:50:44 PAGE 4   
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    452    ----
+   CONSTANT SIZE    =    160    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      43
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
