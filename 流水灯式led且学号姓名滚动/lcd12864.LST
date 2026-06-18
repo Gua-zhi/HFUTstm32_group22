@@ -1,0 +1,226 @@
+C51 COMPILER V9.60.7.0   LCD12864                                                          06/18/2026 15:45:10 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE LCD12864
+OBJECT MODULE PLACED IN lcd12864.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE lcd12864.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "reg51.h"
+   2          
+   3          sbit LCD_RS = P1^0;
+   4          sbit LCD_RW = P1^1;
+   5          sbit LCD_E  = P1^2;
+   6          sbit PSB    = P1^6;
+   7          
+   8          #define LCD_Data P0
+   9          #define Busy     0x80
+  10          
+  11          code unsigned char tmpled[50]={
+  12          0X01,0X02,0X04,0X08,0X10,0X20,0X40,0X80,0X81,0X82,
+  13          0X84,0X88,0X90,0XA0,0XC0,0XC1,0XC2,0XC4,0XC8,0XD0,
+  14          0XE0,0XE1,0XE2,0XE4,0XE8,0XF0,0XF1,0XF2,0XF4,0XF8,
+  15          0XF9,0XFA,0XFC,0XFD,0XFE,0XFF,0XFF,0X00,0XFF,0X00,
+  16          0XFF,0X00,0XFF,0X00,0XFF,0X00,0XFF,0X00,0XFF,0X00
+  17          };
+  18          unsigned char led_idx = 0;
+  19          
+  20          typedef struct
+  21          {
+  22              unsigned char name[16];
+  23              unsigned char id[16];
+  24          } STU;
+  25          code STU stu[5] = {
+  26              {"Grade",       "2025ji"},
+  27              {"Luguanzhi",   "210635"},
+  28              {"Laiweijun",   "210641"},
+  29              {"Wangqihua",   "210603"},
+  30              {"Qiyunzhe",    "210604"}
+  31          };
+  32          
+  33          void WriteDataLCD(unsigned char WDLCD);
+  34          void WriteCommandLCD(unsigned char WCLCD, unsigned char BuysC);
+  35          unsigned char ReadStatusLCD(void);
+  36          void LCDInit(void);
+  37          void LCDClear(void);
+  38          void DisplayOneChar(unsigned char X, unsigned char Y, unsigned char DData);
+  39          void Delay5Ms(void);
+  40          void Delay400Ms(void);
+  41          void ScrollText(unsigned char* show_str);
+  42          void delay(unsigned char tmp);
+  43          void LedTask(void);
+  44          
+  45          void LedTask(void)
+  46          {
+  47   1          P2 = ~tmpled[led_idx];
+  48   1          led_idx++;
+  49   1          if(led_idx >= 50)
+  50   1              led_idx = 0;
+  51   1      }
+  52          
+  53          void main(void)
+  54          {
+  55   1          unsigned char i,j,p;
+C51 COMPILER V9.60.7.0   LCD12864                                                          06/18/2026 15:45:10 PAGE 2   
+
+  56   1          unsigned char show_buf[32];
+  57   1          PSB = 1;
+  58   1          Delay400Ms();
+  59   1          LCDInit();
+  60   1      
+  61   1          while (1)
+  62   1          {
+  63   2              // 高频刷新流水灯，不阻塞
+  64   2              LedTask();
+  65   2      
+  66   2              for (i = 0; i < 5; i++)
+  67   2              {
+  68   3                  p = 0;
+  69   3                  for (j = 0; stu[i].name[j] != '\0'; j++)
+  70   3                      show_buf[p++] = stu[i].name[j];
+  71   3                  show_buf[p++] = ' ';
+  72   3                  for (j = 0; stu[i].id[j] != '\0'; j++)
+  73   3                      show_buf[p++] = stu[i].id[j];
+  74   3                  show_buf[p] = '\0';
+  75   3      
+  76   3                  ScrollText(show_buf);
+  77   3                  LCDClear();
+  78   3                  Delay400Ms();
+  79   3              }
+  80   2          }
+  81   1      }
+  82          
+  83          void WriteDataLCD(unsigned char WDLCD)
+  84          {
+  85   1          ReadStatusLCD();
+  86   1          LCD_RS = 1;
+  87   1          LCD_RW = 0;
+  88   1          LCD_Data = WDLCD;
+  89   1          LCD_E = 1;
+  90   1          Delay5Ms();
+  91   1          LCD_E = 0;
+  92   1      }
+  93          
+  94          void WriteCommandLCD(unsigned char WCLCD, unsigned char BuysC)
+  95          {
+  96   1          if (BuysC) ReadStatusLCD();
+  97   1          LCD_RS = 0;
+  98   1          LCD_RW = 0;
+  99   1          LCD_Data = WCLCD;
+ 100   1          LCD_E = 1;
+ 101   1          Delay5Ms();
+ 102   1          LCD_E = 0;
+ 103   1      }
+ 104          
+ 105          unsigned char ReadStatusLCD(void)
+ 106          {
+ 107   1          unsigned char sta;
+ 108   1          LCD_Data = 0xFF;
+ 109   1          LCD_RS = 0;
+ 110   1          LCD_RW = 1;
+ 111   1          LCD_E = 1;
+ 112   1          Delay5Ms();
+ 113   1          sta = LCD_Data;
+ 114   1          while (sta & Busy)
+ 115   1          {
+ 116   2              sta = LCD_Data;
+ 117   2          }
+C51 COMPILER V9.60.7.0   LCD12864                                                          06/18/2026 15:45:10 PAGE 3   
+
+ 118   1          LCD_E = 0;
+ 119   1          return sta;
+ 120   1      }
+ 121          
+ 122          void LCDInit(void)
+ 123          {
+ 124   1          WriteCommandLCD(0x30, 1);
+ 125   1          Delay5Ms();
+ 126   1          WriteCommandLCD(0x0C, 1);
+ 127   1          Delay5Ms();
+ 128   1          WriteCommandLCD(0x01, 1);
+ 129   1          Delay5Ms();
+ 130   1          WriteCommandLCD(0x06, 1);
+ 131   1          WriteCommandLCD(0x34, 1);
+ 132   1          Delay5Ms();
+ 133   1      }
+ 134          
+ 135          void LCDClear(void)
+ 136          {
+ 137   1          WriteCommandLCD(0x01, 1);
+ 138   1          Delay5Ms();
+ 139   1      }
+ 140          
+ 141          void DisplayOneChar(unsigned char X, unsigned char Y, unsigned char DData)
+ 142          {
+ 143   1          unsigned char addr;
+ 144   1          if (Y != 1)
+ 145   1              return;
+ 146   1          X &= 0x0F;
+ 147   1          addr = 0x80 + X;
+ 148   1          WriteCommandLCD(addr, 0);
+ 149   1          WriteDataLCD(DData);
+ 150   1      }
+ 151          
+ 152          void ScrollText(unsigned char* show_str)
+ 153          {
+ 154   1          unsigned char i, str_len = 0;
+ 155   1          while (show_str[str_len] != '\0') str_len++;
+ 156   1      
+ 157   1          LCDClear();
+ 158   1          for (i = 0; i < str_len && i < 16; i++)
+ 159   1          {
+ 160   2              DisplayOneChar(i, 1, show_str[i]);
+ 161   2              LedTask(); // 每显示一个字符刷新一次LED
+ 162   2          }
+ 163   1          // 等待期间持续刷新流水灯，保证流动
+ 164   1          for(i=0;i<100;i++)
+ 165   1          {
+ 166   2              LedTask();
+ 167   2              delay(30);
+ 168   2          }
+ 169   1      }
+ 170          
+ 171          void Delay5Ms(void)
+ 172          {
+ 173   1          unsigned int TempCyc = 5552;
+ 174   1          while (TempCyc--);
+ 175   1      }
+ 176          
+ 177          void Delay400Ms(void)
+ 178          {
+ 179   1          unsigned char TempCycA = 5;
+C51 COMPILER V9.60.7.0   LCD12864                                                          06/18/2026 15:45:10 PAGE 4   
+
+ 180   1          unsigned int TempCycB;
+ 181   1          while (TempCycA--)
+ 182   1          {
+ 183   2              TempCycB = 7269;
+ 184   2              while (TempCycB--);
+ 185   2          }
+ 186   1      }
+ 187          
+ 188          void delay(unsigned char tmp)
+ 189          {
+ 190   1          unsigned char j;
+ 191   1          while(tmp--)
+ 192   1          {
+ 193   2              j=255;
+ 194   2              while(j--);
+ 195   2          }
+ 196   1      }
+ 197          //代码由流水灯和滚动拼接而成
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    480    ----
+   CONSTANT SIZE    =    210    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1      42
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
