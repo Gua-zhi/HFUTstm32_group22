@@ -1,0 +1,173 @@
+C51 COMPILER V9.60.7.0   L_KEY                                                             06/18/2026 15:08:20 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE L_KEY
+OBJECT MODULE PLACED IN l_key.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE l_key.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          /***************************************************************************
+   2          标题：按键匹配LED+数码管程序
+   3          功能：按下第N个按键，第N个LED点亮，数码管同步显示数字N，松开复位
+   4          硬件说明：
+   5          1. 按键 key1~key6 依次 P3^7、P3^6、P3^5、P3^4、P3^3、P3^2 低电平触发
+   6          2. LED  led1~led6 依次 P2^0、P2^1、P2^2、P2^3、P2^4、P2^5 共阳低电平亮
+   7          3. 四位共阳数码管 P0段选，P1^3个位常亮
+   8          共阳段码：0:0xC0 1:0xF9 2:0xA4 3:0xB0 4:0x99 5:0x92 6:0x82
+   9          ******************************************************************************/
+  10          #include "reg51.h"
+  11          
+  12          // 数码管位选
+  13          sbit SMG_q = P1^0;  //千位
+  14          sbit SMG_b = P1^1;  //百位
+  15          sbit SMG_s = P1^2;  //十位
+  16          sbit SMG_g = P1^3;  //个位
+  17          
+  18          // 6个独立按键
+  19          sbit key1 = P3^7;
+  20          sbit key2 = P3^6;
+  21          sbit key3 = P3^5;
+  22          sbit key4 = P3^4;
+  23          sbit key5 = P3^3;
+  24          sbit key6 = P3^2;
+  25          
+  26          // 6路LED
+  27          sbit led1 = P2^0;
+  28          sbit led2 = P2^1;
+  29          sbit led3 = P2^2;
+  30          sbit led4 = P2^3;
+  31          sbit led5 = P2^4;
+  32          sbit led6 = P2^5;
+  33          
+  34          // 消抖延时函数
+  35          void delay(unsigned char t)
+  36          {
+  37   1        unsigned char i,j;
+  38   1        for(i = t; i > 0; i--)
+  39   1          for(j = 255; j > 0; j--);
+  40   1      }
+  41          
+  42          // 关闭全部LED
+  43          void AllLedOff(void)
+  44          {
+  45   1        led1 = 1;
+  46   1        led2 = 1;
+  47   1        led3 = 1;
+  48   1        led4 = 1;
+  49   1        led5 = 1;
+  50   1        led6 = 1;
+  51   1      }
+  52          
+  53          void main(void)
+  54          {
+  55   1        SMG_g = 0;      // 打开个位数码管
+C51 COMPILER V9.60.7.0   L_KEY                                                             06/18/2026 15:08:20 PAGE 2   
+
+  56   1        AllLedOff();    // 上电所有LED熄灭
+  57   1        P0 = 0xC0;      // 默认显示0
+  58   1        
+  59   1        while(1)
+  60   1        {
+  61   2          if(key1 == 0)
+  62   2          {
+  63   3            delay(10);
+  64   3            if(key1 == 0)
+  65   3            {
+  66   4              AllLedOff();
+  67   4              led1 = 0;    // 1号灯亮
+  68   4              P0 = 0xF9;   // 显示数字1
+  69   4            }
+  70   3            while(key1 == 0);
+  71   3            delay(10);
+  72   3            AllLedOff();
+  73   3            P0 = 0xC0;
+  74   3          }
+  75   2          else if(key2 == 0)
+  76   2          {
+  77   3            delay(10);
+  78   3            if(key2 == 0)
+  79   3            {
+  80   4              AllLedOff();
+  81   4              led2 = 0;    // 2号灯亮
+  82   4              P0 = 0xA4;   // 显示数字2
+  83   4            }
+  84   3            while(key2 == 0);
+  85   3            delay(10);
+  86   3            AllLedOff();
+  87   3            P0 = 0xC0;
+  88   3          }
+  89   2          else if(key3 == 0)
+  90   2          {
+  91   3            delay(10);
+  92   3            if(key3 == 0)
+  93   3            {
+  94   4              AllLedOff();
+  95   4              led3 = 0;    // 3号灯亮
+  96   4              P0 = 0xB0;   // 显示数字3
+  97   4            }
+  98   3            while(key3 == 0);
+  99   3            delay(10);
+ 100   3            AllLedOff();
+ 101   3            P0 = 0xC0;
+ 102   3          }
+ 103   2          else if(key4 == 0)
+ 104   2          {
+ 105   3            delay(10);
+ 106   3            if(key4 == 0)
+ 107   3            {
+ 108   4              AllLedOff();
+ 109   4              led4 = 0;    // 4号灯亮
+ 110   4              P0 = 0x99;   // 显示数字4
+ 111   4            }
+ 112   3            while(key4 == 0);
+ 113   3            delay(10);
+ 114   3            AllLedOff();
+ 115   3            P0 = 0xC0;
+ 116   3          }
+ 117   2          else if(key5 == 0)
+C51 COMPILER V9.60.7.0   L_KEY                                                             06/18/2026 15:08:20 PAGE 3   
+
+ 118   2          {
+ 119   3            delay(10);
+ 120   3            if(key5 == 0)
+ 121   3            {
+ 122   4              AllLedOff();
+ 123   4              led5 = 0;    // 5号灯亮
+ 124   4              P0 = 0x92;   // 显示数字5
+ 125   4            }
+ 126   3            while(key5 == 0);
+ 127   3            delay(10);
+ 128   3            AllLedOff();
+ 129   3            P0 = 0xC0;
+ 130   3          }
+ 131   2          else if(key6 == 0)
+ 132   2          {
+ 133   3            delay(10);
+ 134   3            if(key6 == 0)
+ 135   3            {
+ 136   4              AllLedOff();
+ 137   4              led6 = 0;    // 6号灯亮
+ 138   4              P0 = 0x82;   // 显示数字6
+ 139   4            }
+ 140   3            while(key6 == 0);
+ 141   3            delay(10);
+ 142   3            AllLedOff();
+ 143   3            P0 = 0xC0;
+ 144   3          }
+ 145   2        }
+ 146   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    223    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
