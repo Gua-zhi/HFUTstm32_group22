@@ -27,7 +27,7 @@ code STU stu[5] = {
     {"Luguanzhi",   "210635"},
     {"Laiweijun",   "210641"},
     {"Wangqihua",   "210603"},
-    {"Qiyunzhe",    "210604"}
+    {"Qiyunzhe",    "210643"}
 };
 
 void WriteDataLCD(unsigned char WDLCD);
