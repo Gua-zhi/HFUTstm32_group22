@@ -26,7 +26,7 @@ code STU stu[5] = {
     {"Grade",       "2025ji"},
     {"Luguanzhi",   "210635"},
     {"Laiweijun",   "210641"},
-    {"Wangqihua",   "210603"},
+    {"Wangqihua",   "210638"},
     {"Qiyunzhe",    "210643"}
 };
 
